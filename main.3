@@ -1,0 +1,199 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+typedef struct
+{
+    char* data;
+    struct Node* left;
+    struct Node* right;
+} Node;
+
+Node* newNode(char* w)
+{
+    Node* n = malloc(sizeof(Node));
+    n->data = malloc(30);
+    strcpy(n->data, w);
+    n->left = NULL;
+    n->right = NULL;
+    return n;
+}
+
+Node* insert(Node* root, char* word)
+{
+    if (root==NULL)
+        return newNode(word);
+    else if (strcasecmp(word,root->data) < 0)
+        root->left = insert(root->left, word);
+    else
+        root->right = insert(root->right, word);
+    return root;
+}
+
+Node* search(Node* root, char* word)
+{
+    if (root == NULL)
+        return NULL;
+    else if (strcasecmp(root->data,word) == 0)
+        return root;
+    else if (strcasecmp(word,root->data) < 0)
+    {
+        if (root->left)
+            return search(root->left,word);
+        else
+            return root;
+    }
+    else
+    {
+        if (root->right)
+            return search(root->right,word);
+        else
+            return root;
+    }
+}
+
+Node* findMinNode(Node* root)
+{
+	if(root == NULL) return NULL;
+	while(root->left != NULL)
+		root = root->left;
+	return root;
+}
+
+Node* findMaxNode(Node *root)
+{
+    if(root == NULL) return NULL;
+	while(root->right != NULL)
+		root = root->right;
+	return root;
+}
+
+Node* inorderSucc(Node* root, Node* current)
+{
+	if(current == NULL) return NULL;
+
+	if(current->right != NULL)
+		return findMinNode(current->right);
+
+	else
+    {
+		Node* successor = NULL;
+		Node* ancestor = root;
+		while(ancestor != current)
+		{
+			if(strcasecmp(current->data, ancestor->data) < 0)
+			{
+				successor = ancestor;
+				ancestor = ancestor->left;
+			}
+			else
+				ancestor = ancestor->right;
+		}
+		return successor;
+	}
+}
+
+Node* inorderPred(Node* root, Node* current)
+{
+    if(current == NULL) return NULL;
+
+    if (current->left != NULL)
+        return findMaxNode(current->left);
+
+	else
+    {
+		Node* predecessor = NULL;
+		Node* ancestor = root;
+		while(ancestor != current)
+		{
+			if(strcasecmp(current->data, ancestor->data) > 0)
+			{
+				predecessor = ancestor;
+				ancestor = ancestor->right;
+			}
+			else
+				ancestor = ancestor->left;
+		}
+		return predecessor;
+	}
+}
+
+int count(Node* root)
+{
+    if (root==NULL)
+        return 0;
+    else
+        return 1 + count(root->left) + count(root->right);
+}
+
+int max(int x, int y)
+{
+    return x>y?x:y;
+}
+
+int height(Node* root)
+{
+    if (root==NULL)
+        return -1;
+    else
+        return 1 + max(height(root->left),height(root->right));
+}
+
+Node* readFromDictionary()
+{
+    Node* root = NULL;
+    char word[30];    FILE* f = fopen("EN-US-Dictionary.txt","r");
+    if (f==NULL) {printf("Error opening file, please check if file exits\n"); exit(-1);}
+    while (!feof(f))
+    {
+        fscanf(f,"%s\n",word);
+        root = insert(root, word);
+    }
+    fclose(f);
+    printf("..................................\n");
+    printf("Dictionary Loaded Successfully...!\n");
+    printf("..................................\n");
+    printf("Size = %d\n", count(root));
+    printf("..................................\n");
+    printf("Height = %d\n", height(root));
+    printf("..................................\n");
+    return root;
+}
+
+
+void checkWord(Node* root, char* key)
+{
+    Node* found = NULL;
+    found = search(root, key);
+    if (strcasecmp(key, found->data) == 0)
+        printf("%s - CORRECT\n", key);
+    else
+        printf("%s - Incorrect, Suggestions : %s %s %s\n", key, found->data, inorderSucc(root, found)->data, inorderPred(root,found)->data);
+}
+
+void proofRead(Node* root, char* sentence)
+{
+    char* word = strtok(sentence, " ");
+    while (word)
+    {
+        checkWord(root, word);
+        word = strtok(NULL, " ");
+    }
+    printf("..................................\n");
+
+}
+
+int main()
+{
+    char sentence[261];
+    Node* root = NULL;
+    root = readFromDictionary();
+    puts("Enter a sentence or Ctrl+Z to exit:");
+    while(fgets(sentence, 260, stdin) != NULL)
+    {
+        sentence[strlen(sentence)-1]='\0';
+        proofRead(root, sentence);
+        puts("Enter a sentence or Ctrl+Z to exit:");
+    }
+    return 0;
+}
